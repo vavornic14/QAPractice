@@ -28,12 +28,22 @@ jobs:
       - name: Run e2e tests
         run: npm run test:e2e
 
-      - uses: actions/upload-artifact@v4
+      # Everything below runs on success AND failure. `!cancelled()` rather than
+      # `always()` so a cancelled run does not upload a half-written report.
+      - name: Write summary
         if: ${{ !cancelled() }}
+        run: node scripts/report-summary.mjs "User stories (e2e)" pass
+
+      - name: Upload test report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
           name: e2e-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-results/
           retention-days: 14
+          if-no-files-found: warn
 
   regression-guard:
     name: Regression guard (bugs must still fail)
@@ -54,21 +64,27 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # The regression tests are SUPPOSED to fail - they encode three unfixed
-      # bugs. This step inverts the usual contract: it succeeds only while all
-      # of them are still red, and fails if one passes, is skipped, is renamed
-      # or is deleted.
+      # bugs. This inverts the usual contract: it succeeds only while all of
+      # them are still red, and fails if one passes, is skipped, renamed or
+      # deleted.
       #
-      # A red job here means either the bug was genuinely fixed (update
-      # scripts/assert-regressions-fail.mjs) or a test was healed/weakened
-      # into passing. Both need a human to look.
+      # A red job means either the bug was genuinely fixed (update
+      # scripts/assert-regressions-fail.mjs) or a test was healed into passing.
+      # Both need a human to look.
       - name: Assert regression tests still fail
         run: npm run test:guard
 
-      - uses: actions/upload-artifact@v4
+      - name: Write summary
         if: ${{ !cancelled() }}
+        run: node scripts/report-summary.mjs "Regression tests (must fail)" fail
+
+      - name: Upload regression report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
-          name: regression-guard-report
+          name: regression-report
           path: |
             playwright-report/
-            test-results/regression-guard.json
+            test-results/
           retention-days: 14
+          if-no-files-found: warn

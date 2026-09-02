@@ -29,7 +29,16 @@ export default defineConfig({
   retries: 0,
 
   workers: process.env.CI ? 1 : undefined,
-  reporter: [['html', { open: 'never' }], ['list']],
+  // HTML for humans, JUnit + JSON for CI to summarise without downloading the
+  // artifact. All three are written whether the run passes or fails, which
+  // matters here because the regression project is *supposed* to fail and its
+  // report is the evidence that it failed for the right reason.
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
+    ['json', { outputFile: 'test-results/results.json' }],
+  ],
 
   use: {
     baseURL: 'http://localhost:5173',

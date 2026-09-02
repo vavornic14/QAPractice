@@ -40,9 +40,13 @@ jobs:
         run: npm run test:visual
 
       - name: Check screenshots were produced
+        if: ${{ !cancelled() }}
         run: |
-          count=$(find screenshots -name '*.png' | wc -l)
+          count=$(find screenshots -name '*.png' 2>/dev/null | wc -l)
           echo "found $count screenshots"
+          echo "### Screenshots" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Captured **$count / 24** combination screenshots." >> "$GITHUB_STEP_SUMMARY"
           if [ "$count" -ne 24 ]; then
             echo "::error::expected 24 screenshots, found $count"
             exit 1
@@ -59,11 +63,20 @@ jobs:
         if: ${{ env.ARGOS_TOKEN == '' }}
         run: echo "::notice::ARGOS_TOKEN not set - screenshots captured and uploaded as an artifact, but not diffed by Argos."
 
-      - uses: actions/upload-artifact@v4
+      - name: Write summary
         if: ${{ !cancelled() }}
+        run: node scripts/report-summary.mjs "Visual combinations" pass
+
+      # Runs on success AND failure - a failed visual run is exactly when the
+      # screenshots and report are most worth having.
+      - name: Upload screenshots and report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
-          name: visual-screenshots
+          name: visual-report
           path: |
             screenshots/
             playwright-report/
+            test-results/
           retention-days: 14
+          if-no-files-found: warn
