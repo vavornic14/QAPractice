@@ -1,0 +1,74 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: User stories (must pass)
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: e2e-report
+          path: playwright-report/
+          retention-days: 14
+
+  regression-guard:
+    name: Regression guard (bugs must still fail)
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # The regression tests are SUPPOSED to fail - they encode three unfixed
+      # bugs. This step inverts the usual contract: it succeeds only while all
+      # of them are still red, and fails if one passes, is skipped, is renamed
+      # or is deleted.
+      #
+      # A red job here means either the bug was genuinely fixed (update
+      # scripts/assert-regressions-fail.mjs) or a test was healed/weakened
+      # into passing. Both need a human to look.
+      - name: Assert regression tests still fail
+        run: npm run test:guard
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: regression-guard-report
+          path: |
+            playwright-report/
+            test-results/regression-guard.json
+          retention-days: 14

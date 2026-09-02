@@ -7,14 +7,22 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test --project=e2e --project=visual",
+    "test:e2e": "playwright test --project=e2e",
+    "test:regression": "playwright test --project=regression",
+    "test:visual": "playwright test --project=visual",
+    "test:guard": "node scripts/assert-regressions-fail.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@argos-ci/cli": "^6.9.1",
+    "@argos-ci/playwright": "^7.4.7",
     "@eslint/js": "^9.8.0",
+    "@playwright/test": "^1.62.1",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
