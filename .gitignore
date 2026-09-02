@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+.playwright-mcp/
+.claude/settings.local.json
+.driver-shots/
+screenshots/
